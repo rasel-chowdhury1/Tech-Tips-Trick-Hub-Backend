@@ -6,6 +6,7 @@ import { User } from './user.model'
 // create user
 const createUserIntoDB = async (payload: TUser) => {
   const result = await User.create(payload)
+  console.log({result})
   return result
 }
 // get single user
@@ -46,10 +47,22 @@ const deleteUserIntoDB = async (id: string) => {
   )
   return deletedUser
 }
+const getMeFromDB = async (email: string) => {
+  const user = await User.isUserExists(email)
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found!')
+  }
+  if (user?.isDeleted) {
+    throw new AppError(httpStatus.FORBIDDEN, 'User is deleted!')
+  }
+
+  return user
+}
 export const UserServices = {
   createUserIntoDB,
   getSingleUserIntoDB,
   getAllUsersIntoDB,
   updateUserIntoDB,
   deleteUserIntoDB,
+  getMeFromDB,
 }
