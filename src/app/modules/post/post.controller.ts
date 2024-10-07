@@ -1,132 +1,161 @@
 import httpStatus from 'http-status'
-import catchAsync from '../../../utils/catchAsync'
-import sendResponse from '../../../utils/sendResponse'
-import { PostServices } from './post.service'
-import AppError from '../../error/AppError'
+import sendResponse from '../../utils/sendResponse'
+import catchAsync from '../../utils/catchAsync'
+import { TPost } from './post.interface'
+import { TImageFile } from '../../interface/image.interface'
+import { postServices } from './post.service'
+import Post from './post.model'
+import { getUserInfoFromToken } from '../../utils/getUserInfoFromToken'
 
-const createPostFromDB = catchAsync(async (req, res) => {
-  const result = await PostServices.createPostIntoDB(req.body)
+const createPost = catchAsync(async (req, res) => {
+  const postInfo = req.body
+  const file = req.file as TImageFile
+  const imagePath = file?.path
+  const payload = {
+    ...postInfo,
+    cover: imagePath,
+  }
+
+  const result = await postServices.createPostIntoDB(payload)
+
   sendResponse(res, {
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Post created successfully',
-    statusCode: httpStatus.CREATED,
     data: result,
   })
 })
 
-const getAllPostsFromDB = catchAsync(async (req, res) => {
-  const result = await PostServices.getAllPostsFromDB()
+const updatePost = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const postInfo = req.body
+
+  const file = req.file as TImageFile
+  const imagePath = file?.path
+
+  const payload: Partial<TPost> = {
+    ...postInfo,
+    ...(imagePath ? { cover: imagePath } : {}),
+  }
+
+  const result = await postServices.updatePostIntoDB(id, payload)
+
   sendResponse(res, {
-    success: true,
-    message: 'All posts fetched successfully',
     statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-
-const getSinglePostFromDB = catchAsync(async (req, res) => {
-  const postId = req.params.postId
-
-  const result = await PostServices.getSinglePostFromDB(postId)
-  sendResponse(res, {
-    success: true,
-    message: 'Post fetched successfully',
-    statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-const updatePostFromDB = catchAsync(async (req, res) => {
-  const postId = req.params.postId
-  const result = await PostServices.updatePostIntoDB(postId, req.body)
-  sendResponse(res, {
     success: true,
     message: 'Post updated successfully',
-    statusCode: httpStatus.OK,
     data: result,
   })
 })
 
-const deletedPostFromDB = catchAsync(async (req, res) => {
-  const postId = req.params.postId
-  const result = await PostServices.deletePostIntoDB(postId)
+const getAllPosts = catchAsync(async (req, res) => {
+  const query = req.query
+  const result = await postServices.getAllPostsFromDB(query)
+
   sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Posts retrieved successfully',
+    data: result,
+  })
+})
+const getAllAcInacPosts = catchAsync(async (req, res) => {
+  const result = await Post.find()
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Posts retrieved successfully',
+    data: result,
+  })
+})
+const getPostsByAuthor = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const result = await postServices.getPostsByAuthorFromDB(id)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Posts retrieved successfully',
+    data: result,
+  })
+})
+const getPopularPosts = catchAsync(async (req, res) => {
+  const result = await Post.find()
+    .sort({ upVotes: -1 })
+    .limit(3)
+    .populate('author', '_id name avatar')
+    .select({
+      images: 0,
+      downVotes: 0,
+      commentsCount: 0,
+      category: 0,
+      comments: 0,
+    })
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Top 3 posts retrieved successfully',
+    data: result,
+  })
+})
+const getSinglePost = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const result = await postServices.getSinglePostFromDB(id)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Post retrieved successfully',
+    data: result,
+  })
+})
+const deletePost = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const result = await Post.findByIdAndDelete(id)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Post deleted successfully',
+    data: result,
+  })
+})
+const upVotePost = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const token = req.headers.authorization
+  const { id: userId } = getUserInfoFromToken(token as string)
+  const result = await postServices.upVotePostIntoDB(id, userId)
+  console.log("result from post controller -> ",{result})
+  sendResponse(res, {
     statusCode: httpStatus.OK,
+    success: true,
+    message: 'Voted successfully',
+    data: result,
+  })
+})
+const downVotePost = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const token = req.headers.authorization
+  const { id: userId } = getUserInfoFromToken(token as string)
+  const result = await postServices.downVotePostIntoDB(id, userId)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Down voted successfully',
     data: result,
   })
 })
 
-const commentPosFromDB = catchAsync(async (req, res) => {
-  const postId = req.params.postId
-  const result = await PostServices.commentIntoDB(postId, req.body)
-  sendResponse(res, {
-    success: true,
-    message: 'Commented successfully',
-    statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-
-const commentDeletFromDB = catchAsync(async (req, res) => {
-  const { postId, commentId } = req.params
-  const result = await PostServices.commentDeleteIntoDB(postId, commentId)
-  sendResponse(res, {
-    success: true,
-    message: 'Comment deleted successfully',
-    statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-
-const updateCommentFromDB = catchAsync(async (req, res) => {
-  const { postId, commentId } = req.params
-  const result = await PostServices.commentsUpdateIntoDB(
-    postId,
-    commentId,
-    req.body,
-  )
-  sendResponse(res, {
-    success: true,
-    message: 'Comment updated successfully',
-    statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-const votePost = catchAsync(async (req, res) => {
-  const { postId } = req.params
-  const { action } = req.body
-  if (!['upvote', 'downvote'].includes(action)) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid action')
-  }
-  const result = await PostServices.votePostIntoDB(postId, action)
-  sendResponse(res, {
-    success: true,
-    message: 'Post voted successfully',
-    statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-const myPosts = catchAsync(async (req, res) => {
-  const email = req.user.email
-  const result = await PostServices.myPostsIntoDB(email)
-  sendResponse(res, {
-    success: true,
-    message: 'My posts fetched successfully',
-    statusCode: httpStatus.OK,
-    data: result,
-  })
-})
-
-export const PostControllers = {
-  createPostFromDB,
-  getAllPostsFromDB,
-  getSinglePostFromDB,
-  updatePostFromDB,
-  deletedPostFromDB,
-  commentPosFromDB,
-  commentDeletFromDB,
-  updateCommentFromDB,
-  votePost,
-  myPosts,
+export const postControllers = {
+  createPost,
+  getAllPosts,
+  getAllAcInacPosts,
+  getPostsByAuthor,
+  getPopularPosts,
+  getSinglePost,
+  updatePost,
+  deletePost,
+  upVotePost,
+  downVotePost,
 }

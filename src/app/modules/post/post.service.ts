@@ -1,174 +1,145 @@
-import httpStatus from 'http-status'
-import AppError from '../../error/AppError'
-import { IComment, IPost } from './post.interface'
+import { Types } from 'mongoose'
+import { TPost } from './post.interface'
 import Post from './post.model'
-import { User } from '../user/user.model'
+import { SortOrder } from 'mongoose'
 
-const createPostIntoDB = async (payload: IPost) => {
-  const post = (await (await Post.create(payload)).populate('author')).populate(
-    'comments.user',
-  )
-  return post
+const createPostIntoDB = async (payload: TPost) => {
+  const result = await Post.create(payload)
+  return result
+}
+interface PostQueryParams {
+  searchTerm?: string
+  sort?: 'date' | 'vote'
+  category?: string
+  tag?: string
 }
 
-const getAllPostsFromDB = async () => {
-  const posts = await Post.find()
-    .populate('author')
-    .populate('comments.user')
-    .sort('-createdAt')
-  return posts
+const getAllPostsFromDB = async (query: PostQueryParams) => {
+  const { searchTerm, sort, category, tag } = query
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filter: any = {
+    isActive: { $ne: false }, // Filter for active posts
+  }
+
+  // Search by title or content
+  if (searchTerm) {
+    filter.$or = [
+      { title: { $regex: searchTerm, $options: 'i' } },
+      { content: { $regex: searchTerm, $options: 'i' } },
+    ]
+  }
+
+  // Filter by category
+  if (category) {
+    filter.category = category
+  }
+
+  // Filter by tag
+  if (tag) {
+    filter.tags = tag
+  }
+
+  // Declare sortOption as a dynamic object with SortOrder values
+  let sortOption: Record<string, SortOrder> = { createdAt: -1 }
+
+  // Sort by most votes (i.e., upVotes array length)
+  if (sort === 'vote') {
+    sortOption = { upVotes: -1 }
+  }
+
+  const result = await Post.find(filter)
+    .populate('author', '_id name email avatar followers')
+    .sort(sortOption)
+    .select({ comments: 0 })
+
+  return result
 }
-const getSinglePostFromDB = async (postId: string) => {
-  const post = await Post.findById(postId)
-    .populate('author')
-    .populate('comments.user')
-  if (!post) {
-    throw new Error('Post not found')
-  }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
-  }
-  return post
+
+const getPostsByAuthorFromDB = async (id: string) => {
+  const result = await Post.find({ author: id })
+    .select({ comments: 0 })
+    .populate('author', '_id name avatar')
+  return result
 }
-const updatePostIntoDB = async (postId: string, payload: Partial<IPost>) => {
-  const post = await Post.findById(postId)
-  if (!post) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post not found')
-  }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
-  }
-  const updatedPost = await Post.findByIdAndUpdate(postId, payload, {
+const updatePostIntoDB = async (id: string, payload: Partial<TPost>) => {
+  const result = await Post.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   })
-  return updatedPost
-}
-
-const deletePostIntoDB = async (postId: string) => {
-  const post = await Post.findById(postId)
-  if (!post) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post not found')
-  }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
-  }
-  const deletedPost = await Post.findByIdAndUpdate(
-    postId,
-    { isDeleted: true },
-    { new: true, runValidators: true },
-  )
-  return deletedPost
-}
-const commentIntoDB = async (postId: string, payload: IComment) => {
-  const post = await Post.findById(postId)
-
-  if (!post) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post not found')
-  }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
-  }
-  const result = await Post.findByIdAndUpdate(
-    postId,
-    {
-      $addToSet: { comments: payload },
-    },
-    { new: true, runValidators: true },
-  )
   return result
 }
-const commentDeleteIntoDB = async (postId: string, commentId: string) => {
-  const post = await Post.findById(postId)
+const getSinglePostFromDB = async (id: string) => {
+  const post = await Post.findById(id)
+    .populate('author', '_id name email avatar')
+    .populate({
+      path: 'comments.commenter',
+      select: '_id name email avatar',
+    })
   if (!post) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post not found')
+    throw new Error('Post not found')
   }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
-  }
-  const commentExists = post.comments.some(
-    comment => comment._id?.toString() === commentId,
-  )
-  if (!commentExists) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Comments are not found')
-  }
-  const updatePost = await Post.findByIdAndUpdate(
-    postId,
-    {
-      $pull: { comments: { _id: commentId } },
-    },
-    { new: true, runValidators: true },
-  )
-  return updatePost
+  return post
 }
-const commentsUpdateIntoDB = async (
-  postId: string,
-  commentId: string,
-  newCommment: Record<string, unknown>,
-) => {
-  const post = await Post.findById(postId)
-  if (!post) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post not found')
+const upVotePostIntoDB = async (id: string, userId: string) => {
+  const postData = await Post.findById(id)
+  console.log({postData})
+  if (!postData) {
+    throw new Error('Post not available!')
   }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
+  const userObjectId = new Types.ObjectId(userId)
+  const isDownVoted = postData.downVotes.includes(userObjectId)
+  if (isDownVoted) {
+    await Post.findByIdAndUpdate(id, {
+      $pull: { downVotes: userId },
+    })
   }
-  const commentIndex = post.comments.findIndex(
-    comment => comment._id?.toString() === commentId,
-  )
-  if (commentIndex === -1) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Comment not found')
+  const isVoted = postData.upVotes.includes(userObjectId)
+  console.log({isVoted})
+  if (isVoted) {
+    const result = await Post.findByIdAndUpdate(id, {
+      $pull: { upVotes: userId },
+    })
+    return result
+  } else {
+    const result = await Post.findByIdAndUpdate(id, {
+      $push: { upVotes: userId },
+    })
+    return result
   }
-  post.comments[commentIndex].content = newCommment.content as string
-  const updatedPost = await post.save()
-  return updatedPost
 }
-const votePostIntoDB = async (
-  postId: string,
-  action: 'upvote' | 'downvote',
-) => {
-  const post = await Post.findById(postId)
-  if (!post) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post not found')
+const downVotePostIntoDB = async (id: string, userId: string) => {
+  const postData = await Post.findById(id)
+  if (!postData) {
+    throw new Error('Post not available!')
   }
-  if (post.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Post already deleted')
+  const userObjectId = new Types.ObjectId(userId)
+  const isUpVoted = postData.upVotes.includes(userObjectId)
+  if (isUpVoted) {
+    await Post.findByIdAndUpdate(id, {
+      $pull: { upVotes: userId },
+    })
   }
-  if (action === 'upvote') {
-    post.upvotes += 1
-  } else if (action === 'downvote') {
-    post.downVotes += 1
+  const isVoted = postData.downVotes.includes(userObjectId)
+  if (isVoted) {
+    const result = await Post.findByIdAndUpdate(id, {
+      $pull: { downVotes: userId },
+    })
+    return result
+  } else {
+    const result = await Post.findByIdAndUpdate(id, {
+      $push: { downVotes: userId },
+    })
+    return result
   }
-  const updatedPost = await post.save()
-  return updatedPost
 }
-const myPostsIntoDB = async (email: string) => {
-  const user = await User.isUserExists(email)
-  if (!user) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'User not found')
-  }
-  if (user.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'User already deleted')
-  }
-  const userId = user?._id.toString()
-  const result = await Post.find({ author: userId, isDeleted: false })
-    .populate('author')
-    .populate('comments.user')
-    .sort('-createdAt')
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Posts not found')
-  }
-  return result
-}
-export const PostServices = {
+
+export const postServices = {
   createPostIntoDB,
   getAllPostsFromDB,
+  getPostsByAuthorFromDB,
   getSinglePostFromDB,
   updatePostIntoDB,
-  deletePostIntoDB,
-  commentIntoDB,
-  commentDeleteIntoDB,
-  commentsUpdateIntoDB,
-  votePostIntoDB,
-  myPostsIntoDB,
+  upVotePostIntoDB,
+  downVotePostIntoDB,
 }

@@ -1,67 +1,44 @@
 import express from 'express'
-
-import { PostValidation } from './post.validation'
-
-import auth from '../../middleware/auth'
+import { postControllers } from './post.controller'
+import { multerUpload } from '../../config/multer.config'
+import { parseBody } from '../../middlewares/bodyParser'
+import auth from '../../middlewares/auth'
 import { USER_ROLE } from '../user/user.constant'
-import { PostControllers } from './post.controller'
-import validateRequest from '../../middleware/validRequest'
+// import validateRequest from '../../middlewares/validateRequest'
+// import { UserValidations } from './user.validation'
 
 const router = express.Router()
 
-router.post(
-  '/',
-  auth(USER_ROLE.user),
-  validateRequest(PostValidation.createPostValidation),
-  PostControllers.createPostFromDB,
-)
+// post routes
 
-router.get('/', PostControllers.getAllPostsFromDB)
+router.get('/all-posts', postControllers.getAllPosts)
 router.get(
-  '/my-posts',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.myPosts,
+  '/all-active-inactive-posts',
+  auth(USER_ROLE.admin),
+  postControllers.getAllAcInacPosts,
 )
-router.get(
-  '/:postId',
-  // auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.getSinglePostFromDB,
-)
-
+router.get('/posts-by-author/:id', postControllers.getPostsByAuthor)
+router.get('/popular', postControllers.getPopularPosts)
+router.post('/upvote/:id', postControllers.upVotePost)
+router.post('/downvote/:id', postControllers.downVotePost)
+router.get('/single-post/:id', postControllers.getSinglePost)
 router.put(
-  '/:postId',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  validateRequest(PostValidation.updatePostValidation),
-  PostControllers.updatePostFromDB,
+  '/update-post/:id',
+  multerUpload.single('image'),
+  parseBody,
+  postControllers.updatePost,
 )
-
 router.delete(
-  '/:postId',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.deletedPostFromDB,
+  '/delete-post/:id',
+  auth(USER_ROLE.admin, USER_ROLE.user),
+  postControllers.deletePost,
 )
 
 router.post(
-  '/post-comment/:postId',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.commentPosFromDB,
+  '/create-post',
+  multerUpload.single('image'),
+  parseBody,
+  postControllers.createPost,
 )
 
-router.delete(
-  '/delete-comment/:postId/:commentId',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.commentDeletFromDB,
-)
-
-router.put(
-  '/update-comment/:postId/:commentId',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.updateCommentFromDB,
-)
-router.put(
-  '/:postId/vote',
-  auth(USER_ROLE.user, USER_ROLE.admin),
-  PostControllers.votePost,
-)
-
-export const PostRouters = router
+export const PostRoutes = router

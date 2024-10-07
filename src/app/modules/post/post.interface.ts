@@ -1,32 +1,33 @@
 import { Types } from 'mongoose'
 
-export interface IComment {
-  user: Types.ObjectId
-  content: string
-}
+type TCategory =
+  | 'adventure'
+  | 'eco-tourism'
+  | 'luxury'
+  | 'wellness'
+  | 'cultural'
+  | 'culinary'
+  | 'historical'
+  | 'beach'
+  | 'mountain'
+  | 'road trip'
+  | 'travel'
 
-export interface IPost {
-  _id: Types.ObjectId
+export interface TComment {
+  commenter: Types.ObjectId
+  content: string
+  _id: string
+}
+export interface TPost {
   title: string
-  description: string
+  content: string
+  cover: string
+  tags: 'premium' | 'everyone'
+  comments?: TComment[]
+  commentsCount?: number
+  upVotes: Types.ObjectId[]
+  downVotes: Types.ObjectId[]
   author: Types.ObjectId
-  category:
-    | 'Web'
-    | 'Software Engineering'
-    | 'AI'
-    | 'ML'
-    | 'VR'
-    | 'Mobile'
-    | 'Macbook'
-    | 'Gaming'
-    | 'Others'
-  tags?: string[]
-  isPremium: boolean
-  upvotes: number
-  downVotes: number
-  comments: IComment[]
-  images?: string[]
-  status: 'Draft' | 'Published'
-  pdfVersion?: string
-  isDeleted: boolean
+  category: TCategory
+  isActive: boolean
 }

@@ -1,51 +1,94 @@
 import { z } from 'zod'
 
-// Create User Schema
-const createUserSchema = z.object({
+const createUserValidationSchema = z.object({
   body: z.object({
-    name: z.string().min(1, 'Name is required'),
+    name: z
+      .string({
+        invalid_type_error: 'Name must be a string',
+      })
+      .min(1, 'Name is required'),
+    email: z.string({
+      invalid_type_error: 'Email must be a string',
+    }),
+    password: z
+      .string({
+        invalid_type_error: 'Password must be a string',
+      })
+      .min(6, 'Password must be at least 6 characters')
+      .max(20, 'Password cannot exceed 20 characters'),
+    phone: z
+      .string({
+        invalid_type_error: 'Phone number must be a string',
+      })
+      .min(10, 'Phone number must be at least 10 characters')
+      .max(15, 'Phone number cannot exceed 15 characters'),
+    role: z
+      .enum(['admin', 'user'], {
+        invalid_type_error: 'Role must be either "admin" or "user"',
+      })
+      .default('user'),
+    address: z
+      .string({
+        invalid_type_error: 'Address must be a string',
+      })
+      .optional(),
+  }),
+})
+
+export const updateUserValidationSchema = z.object({
+  body: z.object({
+    name: z
+      .string({
+        invalid_type_error: 'Name must be a string',
+      })
+      .min(1, 'Name is required')
+      .optional(), // Optional field
+
     email: z
-      .string()
-      .email('Please provide a valid email address')
-      .nonempty('Email is required'),
-    password: z.string().min(6, 'Password must be at least 6 characters long'),
-    role: z.enum(['user', 'admin']).optional(),
-    gender: z.enum(['male', 'female'], {
-      required_error: 'Gender is required',
-    }),
-    birthDate: z.string().nonempty('Birth date is required'),
-    profileImage: z.string().optional().nullable(),
-    followers: z.array(z.string()).optional().default([]),
-    following: z.array(z.string()).optional().default([]),
-    payments: z.array(z.string()).optional().default([]),
+      .string({
+        invalid_type_error: 'Email must be a string',
+      })
+      .email('Invalid email address')
+      .optional(), // Optional field
 
-    bio: z.string().optional().nullable(),
-    address: z.string().optional().nullable(),
+    password: z
+      .string({
+        invalid_type_error: 'Password must be a string',
+      })
+      .min(6, 'Password must be at least 6 characters')
+      .max(20, 'Password cannot exceed 20 characters')
+      .optional(), // Optional field
+
+    phone: z
+      .string({
+        invalid_type_error: 'Phone number must be a string',
+      })
+      .min(10, 'Phone number must be at least 10 characters')
+      .max(15, 'Phone number cannot exceed 15 characters')
+      .optional(), // Optional field
+
+    role: z
+      .enum(['admin', 'user'], {
+        invalid_type_error: 'Role must be either "admin" or "user"',
+      })
+      .optional(), // Optional field
+
+    address: z
+      .string({
+        invalid_type_error: 'Address must be a string',
+      })
+      .min(1, 'Address is required')
+      .optional(), // Optional field
+
+    avatar: z
+      .string({
+        invalid_type_error: 'Avatar must be a string (URL or path)',
+      })
+      .optional(), // Optional field for avatar
   }),
 })
 
-// Update User Schema
-const updateUserSchema = createUserSchema.partial().extend({
-  isDeleted: z.boolean().optional(),
-})
-
-const loginValidationSchema = z.object({
-  body: z.object({
-    email: z.string({ required_error: 'email is required' }),
-    password: z.string({ required_error: 'Password is required' }),
-  }),
-})
-const refreshTokenValidationSchema = z.object({
-  cookies: z.object({
-    refreshToken: z.string({
-      required_error: 'Refresh token is required!',
-    }),
-  }),
-})
-// Exporting the schemas
-export {
-  createUserSchema,
-  updateUserSchema,
-  loginValidationSchema,
-  refreshTokenValidationSchema,
+export const UserValidations = {
+  createUserValidationSchema,
+  updateUserValidationSchema,
 }

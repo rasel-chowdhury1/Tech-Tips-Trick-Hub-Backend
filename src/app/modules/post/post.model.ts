@@ -1,96 +1,53 @@
-import { model, Schema } from 'mongoose'
+import mongoose, { Schema } from 'mongoose'
+import { TComment, TPost } from './post.interface'
 
-const commentSchema = new Schema(
+// Comment Schema
+const CommentSchema: Schema = new Schema<TComment>(
   {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
+    commenter: { type: Schema.Types.ObjectId, ref: 'user', required: true },
+    content: { type: String, required: true },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 )
 
-const postSchema = new Schema(
+const PostSchema: Schema = new Schema<TPost>(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    description: {
-      type: String,
-      required: true,
-    },
-    author: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-    },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    cover: { type: String, required: true },
+    tags: { type: String, enum: ['premium', 'regular'], required: true },
+    upVotes: [{ type: Schema.Types.ObjectId, ref: 'user', required: true }],
+    downVotes: [{ type: Schema.Types.ObjectId, ref: 'user', required: true }],
+    comments: [CommentSchema],
+    commentsCount: { type: Number, default: 0 },
+    author: { type: Schema.Types.ObjectId, ref: 'user', required: true },
     category: {
       type: String,
       enum: [
-        'Web',
-        'Software Engineering',
-        'AI',
-        'ML',
-        'VR',
-        'Mobile',
-        'Macbook',
-        'Gaming',
-        'Others',
+        'adventure',
+        'eco-tourism',
+        'luxury',
+        'wellness',
+        'cultural',
+        'culinary',
+        'historical',
+        'beach',
+        'mountain',
+        'road trip',
+        'travel',
       ],
-      required: true,
+      default: 'travel',
     },
-    tags: {
-      type: [String],
-    },
-    isPremium: {
-      type: Boolean,
-      default: false,
-    },
-    upvotes: {
-      type: Number,
-      default: 0,
-    },
-    downVotes: {
-      type: Number,
-      default: 0,
-    },
-    comments: [commentSchema],
-    images: {
-      type: [String],
-    },
-    status: {
-      type: String,
-      enum: ['Draft', 'Published'],
-      default: 'Draft',
-    },
-    pdfVersion: {
-      type: String,
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-    },
+    isActive: { type: Boolean, default: true },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 )
 
-postSchema.pre('find', function (next) {
-  this.find({ isDeleted: { $ne: true } })
-  next()
-})
-
-postSchema.pre('findOne', function (next) {
-  this.find({ isDeleted: { $ne: true } })
-  next()
-})
-
-const Post = model('Post', postSchema)
+// Create the Post model
+const Post = mongoose.model<TPost>('Post', PostSchema)
 
 export default Post

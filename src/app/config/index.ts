@@ -1,15 +1,25 @@
 import dotenv from 'dotenv'
-dotenv.config()
+import path from 'path'
+
+dotenv.config({ path: path.join((process.cwd(), '.env')) })
+
 export default {
   port: process.env.PORT,
-  db_url: process.env.DB_URL,
-  node_dev: process.env.NODE_ENV,
-  bcrypt_salt_number: process.env.BCRYPT_SALT_NUMBER,
+  node_env: process.env.NODE_ENV,
+  database_url: process.env.DATABASE_URL,
   jwt_access_secret: process.env.JWT_ACCESS_SECRET,
   jwt_access_expires_in: process.env.JWT_ACCESS_EXPIRES_IN,
   jwt_refresh_secret: process.env.JWT_REFRESH_SECRET,
   jwt_refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN,
-  reset_pass_ui_link: process.env.RESET_PASS_UI_LINK,
+  bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
+  payment_url: process.env.PAYMENT_URL,
+  store_id: process.env.STORE_ID,
+  signature_key: process.env.SIGNATURE_KEY,
+  payment_verify_url: process.env.PAYMENT_VERIFY_URL,
   client_url: process.env.CLIENT_URL,
+  live_url: process.env.LIVE_URL,
+  client_live_url_service_page: process.env.CLIENT_LIVE_URL_SERVICE_PAGE,
+  cloudinary_cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloudinary_api_key: process.env.CLOUDINARY_API_KEY,
+  cloudinary_api_secret: process.env.CLOUDINARY_API_SECRET,
 }
-

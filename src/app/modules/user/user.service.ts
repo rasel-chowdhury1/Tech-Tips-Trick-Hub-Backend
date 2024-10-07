@@ -1,68 +1,127 @@
-import httpStatus from 'http-status'
-import AppError from '../../error/AppError'
+import { Types } from 'mongoose'
+import { Booking } from '../booking/booking.model'
 import { TUser } from './user.interface'
 import { User } from './user.model'
 
-// create user
-const createUserIntoDB = async (payload: TUser) => {
-  const result = await User.create(payload)
-  console.log({result})
+const createUserIntoDb = async (userData: TUser) => {
+  const result = await User.create(userData)
   return result
 }
-// get single user
-const getSingleUserIntoDB = async (id: string) => {
-  const user = await User.findById(id)
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-  }
-  return user
-}
-// get all users
-const getAllUsersIntoDB = async () => {
-  const users = await User.find()
-  return users
-}
-// update user
+
 const updateUserIntoDB = async (id: string, payload: Partial<TUser>) => {
-  const user = await User.findById(id)
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-  }
-  const updatedUser = await User.findOneAndUpdate({ _id: id }, payload, {
-    runValidators: true,
+  const result = await User.findByIdAndUpdate(id, payload, {
     new: true,
+    runValidators: true,
   })
-  return updatedUser
+  return result
 }
-// delete user
-const deleteUserIntoDB = async (id: string) => {
-  const user = await User.findById(id)
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-  }
-  const deletedUser = await User.findOneAndUpdate(
-    { _id: id },
-    { isDeleted: true },
-    { new: true },
+const updateUserRoleIntoDB = async (id: string, payload: Partial<TUser>) => {
+  const result = await User.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  })
+  return result
+}
+const getUserFromDB = async (email: string) => {
+  const result = await User.findOne({ email }).populate(
+    'following followers',
+    '_id name avatar',
   )
-  return deletedUser
+  return result
 }
-const getMeFromDB = async (email: string) => {
-  const user = await User.isUserExists(email)
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found!')
+const getUserByIdFromDB = async (id: string) => {
+  const result = await User.findById(id).populate(
+    'following followers',
+    '_id name avatar',
+  )
+  if (!result) {
+    throw new Error('User not found!')
   }
-  if (user?.isDeleted) {
-    throw new AppError(httpStatus.FORBIDDEN, 'User is deleted!')
+  return result
+}
+const getMyBookingsFromDb = async (email: string) => {
+  // const result = await Booking.find().populate('customer')
+  const user = await User.findOne({ email })
+  if (user) {
+    const result = await Booking.find({
+      customer: user._id,
+      status: { $ne: 'pending' },
+    })
+      .populate('service', '_id name description price duration')
+      .populate('slot', '_id service date startTime endTime isBooked')
+      .select('-customer')
+      .sort({ createdAt: -1 })
+      .lean()
+    return result
+  }
+}
+type FollowPayload = {
+  userId: string // Assuming you're passing userId and targetedId as strings
+  targetedId: string
+}
+const followUser = async (payload: FollowPayload) => {
+  const { userId, targetedId } = payload
+
+  // Convert string IDs to ObjectId
+  const userObjectId = new Types.ObjectId(userId)
+  const targetedObjectId = new Types.ObjectId(targetedId)
+
+  const targetedUser = await User.findById(targetedObjectId)
+  if (!targetedUser) {
+    throw new Error('User not found')
   }
 
-  return user
+  const isFollowing = targetedUser.followers.includes(userObjectId)
+
+  if (isFollowing) {
+    await User.findByIdAndUpdate(userObjectId, {
+      $pull: { following: targetedObjectId },
+    })
+    await User.findByIdAndUpdate(targetedObjectId, {
+      $pull: { followers: userObjectId },
+    })
+    return 'Unfollowed successfully'
+  } else {
+    await User.findByIdAndUpdate(userObjectId, {
+      $push: { following: targetedObjectId },
+    })
+    await User.findByIdAndUpdate(targetedObjectId, {
+      $push: { followers: userObjectId },
+    })
+    return 'Followed successfully'
+  }
 }
-export const UserServices = {
-  createUserIntoDB,
-  getSingleUserIntoDB,
-  getAllUsersIntoDB,
+const getFollowersFromDB = async (id: string) => {
+  // Find the user by ID and populate the followers field
+  const userWithFollowers = await User.findById(id)
+    .populate('followers', 'name email avatar') // Specify the fields you want from the follower
+    .select('followers')
+
+  if (!userWithFollowers) {
+    throw new Error('User not found')
+  }
+  return userWithFollowers
+}
+const getFollowingFromDB = async (id: string) => {
+  // Find the user by ID and populate the followers field
+  const userWithFollowing = await User.findById(id)
+    .populate('following', 'name email avatar') // Specify the fields you want from the follower
+    .select('followers')
+
+  if (!userWithFollowing) {
+    throw new Error('User not found')
+  }
+  return userWithFollowing
+}
+
+export const userServices = {
+  createUserIntoDb,
+  getMyBookingsFromDb,
+  getUserFromDB,
+  getUserByIdFromDB,
   updateUserIntoDB,
-  deleteUserIntoDB,
-  getMeFromDB,
+  updateUserRoleIntoDB,
+  followUser,
+  getFollowersFromDB,
+  getFollowingFromDB,
 }

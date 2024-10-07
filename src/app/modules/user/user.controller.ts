@@ -1,71 +1,190 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { userServices } from './user.service'
+import catchAsync from '../../utils/catchAsync'
+import sendResponse from '../../utils/sendResponse'
 import httpStatus from 'http-status'
-import catchAsync from '../../../utils/catchAsync'
-import sendResponse from '../../../utils/sendResponse'
-import { UserServices } from './user.service'
+import { getUserInfoFromToken } from '../../utils/getUserInfoFromToken'
+import { handleNoDataResponse } from '../../errors/handleNoData'
+import { User } from './user.model'
+import { TUser } from './user.interface'
+import Post from '../post/post.model'
 
-const createUserFromDB = catchAsync(async (req, res) => {
-  const result = await UserServices.createUserIntoDB(req.body)
-  console.log("controller result-> ", result)
+const createUser = catchAsync(async (req, res) => {
+  const userInfo = req.body
+  const files = req.files as { avatar?: Express.Multer.File[] }
+  const userAvatar = files?.avatar?.[0]?.path
+
+  const userData: TUser = {
+    ...userInfo,
+    avatar: userAvatar,
+  }
+
+  console.log({userData})
+
+  const result = await userServices.createUserIntoDb(userData)
+  console.log({result})
   sendResponse(res, {
-    success: true,
     statusCode: httpStatus.OK,
-    message: 'Users Retrieved Successfully',
+    success: true,
+    message: 'User registered successfully',
     data: result,
   })
 })
-const getSingleUserFromDB = catchAsync(async (req, res) => {
-  const result = await UserServices.getSingleUserIntoDB(req.params.id)
+const getAllUser = catchAsync(async (req, res) => {
+  const result = await User.find()
   sendResponse(res, {
-    success: true,
     statusCode: httpStatus.OK,
-    message: 'Users Retrieved Successfully',
+    success: true,
+    message: 'User retrieved successfully',
     data: result,
   })
 })
-const getMe = catchAsync(async (req, res) => {
-  const email = req.user.email
-  const result = await UserServices.getMeFromDB(email)
+const getSiteStatistics = catchAsync(async (req, res) => {
+  const totalUsers = await User.countDocuments()
+  const totalPremiumUsers = await User.countDocuments({ status: 'premium' })
+  const totalBasicUsers = await User.countDocuments({ status: 'basic' })
+
+  const totalContents = await Post.countDocuments()
+  const totalInactiveContents = await Post.countDocuments({ isActive: false })
+
+  const result = {
+    totalUsers: totalUsers,
+    totalPremiumUsers: totalPremiumUsers,
+    totalBasicUsers: totalBasicUsers,
+    totalContents: totalContents,
+    totalActiveContents: totalContents - totalInactiveContents,
+    totalInactiveContents: totalInactiveContents,
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Profile data fetched successfully!',
+    message: 'Site statistics retrieved successfully',
+    data: result,
+  })
+})
+const getUserByEmail = catchAsync(async (req, res) => {
+  const token = req.headers.authorization
+  const { email } = getUserInfoFromToken(token as string)
+  const result = await userServices.getUserFromDB(email)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User retrieved successfully',
+    data: result,
+  })
+})
+const getUserById = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const result = await userServices.getUserByIdFromDB(id)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User retrieved successfully',
+    data: result,
+  })
+})
+const getSingleUser = catchAsync(async (req, res) => {
+  const { email } = req.params
+  const result = await userServices.getUserFromDB(email)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User retrieved successfully',
+    data: result,
+  })
+})
+const updateUser = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const userInfo = req.body
+  const files = req.files as { avatar?: Express.Multer.File[] }
+  const userAvatar = files?.avatar?.[0]?.path
+
+  const updatedUserData: Partial<TUser> = {
+    ...userInfo,
+    ...(userAvatar ? { avatar: userAvatar } : {}), // Only include avatar if it exists
+  }
+  const result = await userServices.updateUserIntoDB(id, updatedUserData)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User updated successfully',
+    data: result,
+  })
+})
+const updateUserRole = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const userInfo = req.body
+  console.log(id, userInfo)
+  const result = await userServices.updateUserIntoDB(id, userInfo)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User updated successfully',
+    data: result,
+  })
+})
+const getMyBookings = catchAsync(async (req, res) => {
+  const token = req.headers.authorization
+  const { email } = getUserInfoFromToken(token as string)
+
+  const result = await userServices.getMyBookingsFromDb(email)
+
+  if (!result || result?.length === 0) {
+    return handleNoDataResponse(res)
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User bookings retrieved successfully',
+    data: result,
+  })
+})
+const follow = catchAsync(async (req, res) => {
+  const payload = req.body
+  const result = await userServices.followUser(payload)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User retrieved successfully',
+    data: result,
+  })
+})
+const getFollowers = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const result = await userServices.getFollowersFromDB(id)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Followers retrieved successfully',
+    data: result,
+  })
+})
+const getFollowing = catchAsync(async (req, res) => {
+  const { id } = req.params
+  const result = await userServices.getFollowingFromDB(id)
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Following users retrieved successfully',
     data: result,
   })
 })
 
-const getAllUserFromDB = catchAsync(async (req, res) => {
-  const result = await UserServices.getAllUsersIntoDB()
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'Users Retrieved Successfully',
-    data: result,
-  })
-})
-const updateUserFromDB = catchAsync(async (req, res) => {
-  const result = await UserServices.updateUserIntoDB(req.params.id, req.body)
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'Users Updated Successfully',
-    data: result,
-  })
-})
-const deleteUserFromDB = catchAsync(async (req, res) => {
-  const result = await UserServices.deleteUserIntoDB(req.params.id)
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'Users Deleted Successfully',
-    data: result,
-  })
-})
-
-export const UserControllers = {
-  createUserFromDB,
-  getSingleUserFromDB,
-  getAllUserFromDB,
-  updateUserFromDB,
-  deleteUserFromDB,
-  getMe,
+export const userControllers = {
+  createUser,
+  getMyBookings,
+  getAllUser,
+  getSiteStatistics,
+  getUserByEmail,
+  getUserById,
+  getSingleUser,
+  updateUser,
+  updateUserRole,
+  follow,
+  getFollowers,
+  getFollowing,
 }

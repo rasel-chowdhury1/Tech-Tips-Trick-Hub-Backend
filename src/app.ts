@@ -1,26 +1,33 @@
 import express, { Application, Request, Response } from 'express'
-import cookieParser from 'cookie-parser'
-import cors from 'cors';
-import notFound from './app/middleware/notFound'
-import globalErrorHandler from './app/middleware/globalErrorHandler'
-import router from './app/router'
-
+import cors from 'cors'
+import router from './app/routes'
+import globalErrorHandler from './app/middlewares/globalErrorhandler'
+import notFound from './app/middlewares/notFound'
 const app: Application = express()
 
-//parser
-
+// parser
 app.use(express.json())
-app.use(cookieParser())
-app.use(cors({ origin: ['http://localhost:3000'] }));
+app.use(express.urlencoded({ extended: true }))
+app.use(
+  cors({
+    origin: [
+      'https://ultimate-tripz.netlify.app',
+      'https://ultimate-tripz-next.vercel.app',
+      'http://localhost:3000',
+    ], // Allow your frontend URL
+    credentials: true, // Allow credentials to be included
+  }),
+)
 
-//application routes
-app.use("/api/v1", router);
+// application routes
+app.use('/api', router)
 
 app.get('/', (req: Request, res: Response) => {
-  res.send('Welcome to Tech Tips Trick Hub Project!')
+  res.send('TechMaster Tips Running!')
 })
-// global error handler
 app.use(globalErrorHandler)
-// Not Found
+
+//Not Found
 app.use(notFound)
+
 export default app
