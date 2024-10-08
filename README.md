@@ -1,12 +1,14 @@
 # Tech Tips & Tricks Backend
 
+### Live URL: https://tech-tips-trick-hub-backend.vercel.app
+
 This is the backend API for the **Tech Tips & Tricks** platform, built with Node.js, Express, and MongoDB. It provides robust user authentication, content management, and payment integration for premium content.
 
 ## Key Features:
 - **User Authentication**: JWT-based authentication for secure user login and signup.
 - **User Roles**: Differentiates between regular users and admins, with role-based access control.
 - **Post Management**: API endpoints for creating, updating, deleting, and managing user-generated posts with rich text, images, and tags.
-- **Premium Content**: Payment integration (Aamarpay/Stripe) for subscribing to exclusive posts and content.
+- **Premium Content**: Payment integration Aamarpay for subscribing to exclusive posts and content.
 - **Commenting System**: Users can add, edit, or delete comments on posts.
 - **Upvote/Downvote**: Allows users to vote on posts and comments.
 - **Search & Filter**: Advanced search functionality with debounced keyword search and category filtering.
@@ -35,11 +37,23 @@ This is the backend API for the **Tech Tips & Tricks** platform, built with Node
 
 3. Create a `.env` file in the root directory and configure the following environment variables:
     ```bash
-    PORT=5000
-    MONGO_URI=your_mongodb_connection_string
-    JWT_SECRET=your_jwt_secret
-    STRIPE_SECRET_KEY=your_stripe_secret_key
-    AAMARPAY_KEY=your_aamarpay_key
+- NODE_ENV
+- PORT
+- DATABASE_URL
+- DATABASE_URL
+- JWT_ACCESS_SECRET
+- JWT_ACCESS_EXPIRES_IN
+- BCRYPT_SALT_ROUNDS
+- CLOUDINARY_CLOUD_NAME
+- CLOUDINARY_API_KEY
+- CLOUDINARY_API_SECRET
+- PAYMENT_URL
+- PAYMENT_VERIFY_URL
+- STORE_ID
+- SIGNATURE_KEY
+- CLIENT_URL
+- LIVE_URL
+- CLIENT_LIVE_URL_SERVICE_PAGE
     ```
 
 4. Run the application:
@@ -49,12 +63,11 @@ This is the backend API for the **Tech Tips & Tricks** platform, built with Node
 
 5. The API will be available at `http://localhost:5000`.
 
-## API Endpoints:
+<!-- ## API Endpoints:
 
 - **Authentication**:
-    - `POST /api/auth/register`: Register a new user.
+    - `POST /api/auth/registration`: Register a new user.
     - `POST /api/auth/login`: User login.
-    - `POST /api/auth/logout`: User logout.
   
 - **Post Management**:
     - `GET /api/posts`: Get all posts.
@@ -68,8 +81,8 @@ This is the backend API for the **Tech Tips & Tricks** platform, built with Node
     - `DELETE /api/posts/:postId/comments/:commentId`: Delete a comment.
   
 - **Payments**:
-    - `POST /api/payments/checkout`: Process payment for premium content.
+    - `POST /api/payments/checkout`: Process payment for premium content. -->
 
-## License:
+## Ending Message:
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+Thank you for using the **Tech Tips & Tricks** platform! We hope this project helps you explore and master technology with ease. If you have any feedback, feature requests, or issues, feel free to reach out. Together, we can continue to build a community where sharing knowledge and solving tech problems empowers everyone.
