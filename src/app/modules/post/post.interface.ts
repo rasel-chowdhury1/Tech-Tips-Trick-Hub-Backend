@@ -1,17 +1,15 @@
 import { Types } from 'mongoose'
 
 type TCategory =
-  | 'adventure'
-  | 'eco-tourism'
-  | 'luxury'
-  | 'wellness'
-  | 'cultural'
-  | 'culinary'
-  | 'historical'
-  | 'beach'
-  | 'mountain'
-  | 'road trip'
-  | 'travel'
+  | 'software_engineering'
+  | 'tech'
+  | 'ml'
+  | 'vr'
+  | 'watch'
+  | 'mobile'
+  | 'macbook'
+  | 'gaming'
+  | 'others'
 
 export interface TComment {
   commenter: Types.ObjectId
