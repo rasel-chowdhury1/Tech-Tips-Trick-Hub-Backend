@@ -49,7 +49,7 @@ const getAllPostsFromDB = async (query: PostQueryParams) => {
   }
 
   const result = await Post.find(filter)
-    .populate('author', '_id name email avatar followers')
+    .populate('author', '_id name email avatar followers status')
     .sort(sortOption)
     .select({ comments: 0 })
 
@@ -83,7 +83,6 @@ const getSinglePostFromDB = async (id: string) => {
 }
 const upVotePostIntoDB = async (id: string, userId: string) => {
   const postData = await Post.findById(id)
-  console.log({postData})
   if (!postData) {
     throw new Error('Post not available!')
   }
@@ -95,7 +94,6 @@ const upVotePostIntoDB = async (id: string, userId: string) => {
     })
   }
   const isVoted = postData.upVotes.includes(userObjectId)
-  console.log({isVoted})
   if (isVoted) {
     const result = await Post.findByIdAndUpdate(id, {
       $pull: { upVotes: userId },
