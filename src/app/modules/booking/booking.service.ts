@@ -11,6 +11,7 @@ const createBookingIntoDB = async (
 ) => {
   //   console.log(bookingData)
   const userInfo = await User.findOne({ email })
+  console.log({userInfo})
   if (!userInfo) {
     throw new Error('User not found')
   }
@@ -24,7 +25,10 @@ const createBookingIntoDB = async (
     paidStatus: 'booked',
   }
 
+  console.log({paymentData})
+
   const paymentRes = await initiatePayment(paymentData)
+  console.log({paymentRes})
 
   const customerId = new Types.ObjectId(userInfo._id)
 

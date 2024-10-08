@@ -9,7 +9,7 @@ import { handleNoDataResponse } from '../../errors/handleNoData'
 const createBooking = catchAsync(async (req, res) => {
   const token = req.headers.authorization
   const bookingData = req.body
-
+  console.log({bookingData})
   const { email } = getUserInfoFromToken(token as string)
 
   const result = await bookingServices.createBookingIntoDB(email, bookingData)
