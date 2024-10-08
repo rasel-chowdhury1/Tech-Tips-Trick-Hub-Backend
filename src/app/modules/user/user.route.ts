@@ -20,7 +20,7 @@ router.get('/get-followers/:id', userControllers.getFollowers)
 router.get('/get-following/:id', userControllers.getFollowing)
 router.get(
   '/statistics',
-  auth(USER_ROLE.admin),
+  // auth(USER_ROLE.admin),
   userControllers.getSiteStatistics,
 )
 
